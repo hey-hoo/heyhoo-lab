@@ -1,4 +1,3 @@
-
 name: Simple Claude Actions
 
 on:
@@ -27,25 +26,28 @@ jobs:
       id: req
       run: |
         if [ "${{ github.event_name }}" = "issues" ]; then
-          TEXT="${{ github.event.issue.title }} ${{ github.event.issue.body }}"
+          # Issue本文をそのまま使用
+          echo '${{ github.event.issue.body }}' > request.txt
         else
-          TEXT="${{ github.event.comment.body }}"
+          echo '${{ github.event.comment.body }}' > request.txt
         fi
-        REQUEST=$(echo "$TEXT" | sed 's/.*@claude *//g' | head -1)
-        echo "text=$REQUEST" >> $GITHUB_OUTPUT
+        echo "file=request.txt" >> $GITHUB_OUTPUT
         
     - name: Call Claude
       run: |
+        REQUEST_FILE="${{ steps.req.outputs.file }}"
+        REQUEST_CONTENT=$(cat "$REQUEST_FILE")
+        
         curl -s -X POST https://api.anthropic.com/v1/messages \
           -H "Content-Type: application/json" \
           -H "x-api-key: ${{ secrets.ANTHROPIC_API_KEY }}" \
           -H "anthropic-version: 2023-06-01" \
           -d "{
             \"model\": \"claude-3-sonnet-20240229\",
-            \"max_tokens\": 1000,
+            \"max_tokens\": 2000,
             \"messages\": [{
               \"role\": \"user\", 
-              \"content\": \"ヘーホー学舎のウェブサイト用コンテンツ作成: ${{ steps.req.outputs.text }}\"
+              \"content\": \"以下のリクエストに基づいて、ヘーホー学舎のWebサイト用コンテンツを作成してください。マークダウン形式で出力してください。\\n\\n$REQUEST_CONTENT\"
             }]
           }" | jq -r '.content[0].text // "エラー"' > content.txt
         
