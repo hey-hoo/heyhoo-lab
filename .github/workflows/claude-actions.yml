@@ -63,9 +63,21 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "Claude Actions"
+        
+        # 最新の変更を取得
+        git fetch origin
+        git rebase origin/main || git reset --hard origin/main
+        
+        # ファイルを再度更新（rebaseで消えた場合に備えて）
+        echo "---" > index.md
+        echo "layout: home" >> index.md
+        echo "---" >> index.md
+        echo "" >> index.md
+        cat content.txt >> index.md
+        
         git add .
         git commit -m "Update by Claude" || echo "No changes"
-        git push
+        git push origin main
         
     - name: Comment
       run: |
