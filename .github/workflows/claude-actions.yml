@@ -1,0 +1,118 @@
+name: Claude Actions
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  claude-response:
+    if: contains(github.event.issue.body, '@claude') || contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Extract Claude request
+      id: extract
+      run: |
+        if [ "${{ github.event_name }}" = "issues" ]; then
+          BODY="${{ github.event.issue.body }}"
+        else
+          BODY="${{ github.event.comment.body }}"
+        fi
+        
+        # @claudeの後のテキストを抽出
+        REQUEST=$(echo "$BODY" | grep -o '@claude.*' | sed 's/@claude//' | xargs)
+        echo "request=$REQUEST" >> $GITHUB_OUTPUT
+        echo "Request: $REQUEST"
+        
+    - name: Call Claude API
+      id: claude
+      run: |
+        RESPONSE=$(curl -X POST https://api.anthropic.com/v1/messages \
+          -H "Content-Type: application/json" \
+          -H "x-api-key: ${{ secrets.ANTHROPIC_API_KEY }}" \
+          -H "anthropic-version: 2023-06-01" \
+          -d '{
+            "model": "claude-3-sonnet-20240229",
+            "max_tokens": 1000,
+            "messages": [
+              {
+                "role": "user", 
+                "content": "ヘーホー学舎のウェブサイト用のコンテンツを作成してください。リクエスト: ${{ steps.extract.outputs.request }}"
+              }
+            ]
+          }')
+        
+        # レスポンスからcontentを抽出
+        CONTENT=$(echo "$RESPONSE" | jq -r '.content[0].text')
+        echo "content<<EOF" >> $GITHUB_OUTPUT
+        echo "$CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create or update content
+      run: |
+        CONTENT="${{ steps.claude.outputs.content }}"
+        REQUEST="${{ steps.extract.outputs.request }}"
+        
+        # FAQリクエストの場合
+        if echo "$REQUEST" | grep -i "faq"; then
+          echo "---" > faq.md
+          echo "layout: page" >> faq.md
+          echo "title: FAQ" >> faq.md
+          echo "permalink: /faq/" >> faq.md
+          echo "---" >> faq.md
+          echo "" >> faq.md
+          echo "$CONTENT" >> faq.md
+        
+        # 講座リクエストの場合  
+        elif echo "$REQUEST" | grep -i "講座\|course"; then
+          echo "---" > courses.md
+          echo "layout: page" >> courses.md
+          echo "title: 講座" >> courses.md
+          echo "permalink: /courses/" >> courses.md
+          echo "---" >> faq.md
+          echo "" >> courses.md
+          echo "$CONTENT" >> courses.md
+          
+        # その他の場合は新しい投稿として作成
+        else
+          DATE=$(date +%Y-%m-%d)
+          FILENAME="_posts/$DATE-claude-response.md"
+          echo "---" > "$FILENAME"
+          echo "layout: post" >> "$FILENAME"
+          echo "title: Claude Response" >> "$FILENAME"
+          echo "date: $DATE" >> "$FILENAME"
+          echo "---" >> "$FILENAME"
+          echo "" >> "$FILENAME"
+          echo "$CONTENT" >> "$FILENAME"
+        fi
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "Claude Actions"
+        git add .
+        git commit -m "Claude update: ${{ steps.extract.outputs.request }}" || exit 0
+        git push
+        
+    - name: Comment on issue
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🤖 Claudeがコンテンツを更新しました！\n\n**リクエスト**: ${{ steps.extract.outputs.request }}\n\n**内容**: \n${{ steps.claude.outputs.content }}\n\n変更がサイトに反映されるまで数分お待ちください。'
+          })
