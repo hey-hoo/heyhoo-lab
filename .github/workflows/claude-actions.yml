@@ -85,12 +85,14 @@ jobs:
           echo "layout: page" >> courses.md
           echo "title: 講座" >> courses.md
           echo "permalink: /courses/" >> courses.md
-          echo "---" >> faq.md
+          echo "---" >> courses.md
           echo "" >> courses.md
           echo "$CONTENT" >> courses.md
           
         # その他の場合は新しい投稿として作成
         else
+          # _postsディレクトリを作成
+          mkdir -p _posts
           DATE=$(date +%Y-%m-%d)
           FILENAME="_posts/$DATE-claude-response.md"
           echo "---" > "$FILENAME"
