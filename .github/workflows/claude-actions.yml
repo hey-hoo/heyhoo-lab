@@ -1,4 +1,5 @@
-name: Claude Actions
+
+name: Simple Claude Actions
 
 on:
   issues:
@@ -12,26 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
-        ref: main
         
-    - name: Setup directories
+    - name: Clean files
       run: |
-        # 不要なファイル・ディレクトリを削除
-        rm -rf _posts
-        rm -rf posts
-        rm -f faq.md
-        rm -f courses.md
-        rm -f about.md
-        rm -f blog-*.md
-        echo "Cleaned up unnecessary files and directories"
+        rm -rf _posts posts
+        rm -f faq.md courses.md about.md blog-*.md
         
-    - name: Extract request
-      id: request
+    - name: Get request
+      id: req
       run: |
         if [ "${{ github.event_name }}" = "issues" ]; then
           TEXT="${{ github.event.issue.title }} ${{ github.event.issue.body }}"
@@ -40,15 +33,10 @@ jobs:
         fi
         REQUEST=$(echo "$TEXT" | sed 's/.*@claude *//g' | head -1)
         echo "text=$REQUEST" >> $GITHUB_OUTPUT
-        echo "Request: $REQUEST"
         
-    - name: Call Claude API
-      id: claude
+    - name: Call Claude
       run: |
-        REQUEST="${{ steps.request.outputs.text }}"
-        echo "Calling Claude with: $REQUEST"
-        
-        RESPONSE=$(curl -s -X POST https://api.anthropic.com/v1/messages \
+        curl -s -X POST https://api.anthropic.com/v1/messages \
           -H "Content-Type: application/json" \
           -H "x-api-key: ${{ secrets.ANTHROPIC_API_KEY }}" \
           -H "anthropic-version: 2023-06-01" \
@@ -57,66 +45,25 @@ jobs:
             \"max_tokens\": 1000,
             \"messages\": [{
               \"role\": \"user\", 
-              \"content\": \"ヘーホー学舎のウェブサイト用コンテンツ作成: $REQUEST\"
+              \"content\": \"ヘーホー学舎のウェブサイト用コンテンツ作成: ${{ steps.req.outputs.text }}\"
             }]
-          }")
+          }" | jq -r '.content[0].text // "エラー"' > content.txt
         
-        CONTENT=$(echo "$RESPONSE" | jq -r '.content[0].text // "エラー: コンテンツを生成できませんでした"')
-        echo "Generated content length: ${#CONTENT}"
-        
-        # ファイルに一時保存して文字化け回避
-        echo "$CONTENT" > /tmp/claude_content.txt
-        echo "content_file=/tmp/claude_content.txt" >> $GITHUB_OUTPUT
-        
-    - name: Update content
+    - name: Update index
       run: |
-        CONTENT_FILE="${{ steps.claude.outputs.content_file }}"
-        REQUEST="${{ steps.request.outputs.text }}"
+        echo "---" > index.md
+        echo "layout: home" >> index.md
+        echo "---" >> index.md
+        echo "" >> index.md
+        cat content.txt >> index.md
         
-        if echo "$REQUEST" | grep -qi "トップ\|index\|ホーム\|メイン\|更新"; then
-          # index.mdを完全に置き換え
-          echo "---" > index.md
-          echo "layout: home" >> index.md
-          echo "---" >> index.md
-          echo "" >> index.md
-          cat "$CONTENT_FILE" >> index.md
-          echo "Replaced index.md completely"
-          
-        elif echo "$REQUEST" | grep -qi "faq"; then
-          # FAQセクションをindex.mdに追加
-          echo "" >> index.md
-          echo "## FAQ" >> index.md
-          echo "" >> index.md
-          cat "$CONTENT_FILE" >> index.md
-          echo "Added FAQ section to index.md"
-          
-        elif echo "$REQUEST" | grep -qi "講座\|course"; then
-          # 講座セクションをindex.mdに追加
-          echo "" >> index.md
-          echo "## 講座情報" >> index.md
-          echo "" >> index.md
-          cat "$CONTENT_FILE" >> index.md
-          echo "Added course section to index.md"
-          
-        else
-          # その他の内容もindex.mdに追加
-          echo "" >> index.md
-          echo "## 追加情報" >> index.md
-          echo "" >> index.md
-          cat "$CONTENT_FILE" >> index.md
-          echo "Added additional content to index.md"
-        fi
-        
-        echo "Successfully updated index.md"
-        
-    - name: Commit changes
+    - name: Commit
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "Claude Actions"
-        git pull origin main
         git add .
-        git commit -m "Update content via Claude" || echo "No changes"
-        git push origin main
+        git commit -m "Update by Claude" || echo "No changes"
+        git push
         
     - name: Comment
       run: |
@@ -124,4 +71,4 @@ jobs:
           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
           "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments" \
-          -d '{"body":"🤖 コンテンツを更新しました！数分後にサイトに反映されます。"}'
+          -d '{"body":"🤖 更新完了！"}'
