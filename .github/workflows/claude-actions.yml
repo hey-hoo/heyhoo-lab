@@ -103,8 +103,12 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "Claude Actions"
         git add .
-        git commit -m "Claude update: ${{ steps.extract.outputs.request }}" || exit 0
-        git push
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Claude update: ${{ steps.extract.outputs.request }}"
+          git push
+        fi
         
     - name: Comment on issue
       uses: actions/github-script@v7
