@@ -21,12 +21,14 @@ jobs:
         
     - name: Setup directories
       run: |
-        # 既存の_postsファイル/ディレクトリを完全にクリーンアップ
+        # 不要なファイル・ディレクトリを削除
         rm -rf _posts
-        # _postsディレクトリを新規作成
-        mkdir _posts
-        touch _posts/.gitkeep
-        echo "Created _posts directory"
+        rm -rf posts
+        rm -f faq.md
+        rm -f courses.md
+        rm -f about.md
+        rm -f blog-*.md
+        echo "Cleaned up unnecessary files and directories"
         
     - name: Extract request
       id: request
@@ -74,51 +76,36 @@ jobs:
         REQUEST="${{ steps.request.outputs.text }}"
         
         if echo "$REQUEST" | grep -qi "faq"; then
-          FILE="faq.md"
-          TITLE="FAQ"
-          PERMALINK="/faq/"
-          echo "---" > "$FILE"
-          echo "layout: page" >> "$FILE"
-          echo "title: $TITLE" >> "$FILE"
-          echo "permalink: $PERMALINK" >> "$FILE"
-          echo "---" >> "$FILE"
-          echo "" >> "$FILE"
-          echo "$CONTENT" >> "$FILE"
+          # FAQセクションをindex.mdに追加
+          echo "" >> index.md
+          echo "## FAQ" >> index.md
+          echo "" >> index.md
+          echo "$CONTENT" >> index.md
           
-        elif echo "$REQUEST" | grep -qi "講座"; then
-          FILE="courses.md"
-          TITLE="講座"
-          PERMALINK="/courses/"
-          echo "---" > "$FILE"
-          echo "layout: page" >> "$FILE"
-          echo "title: $TITLE" >> "$FILE"
-          echo "permalink: $PERMALINK" >> "$FILE"
-          echo "---" >> "$FILE"
-          echo "" >> "$FILE"
-          echo "$CONTENT" >> "$FILE"
+        elif echo "$REQUEST" | grep -qi "講座\|course"; then
+          # 講座セクションをindex.mdに追加
+          echo "" >> index.md
+          echo "## 講座情報" >> index.md
+          echo "" >> index.md
+          echo "$CONTENT" >> index.md
           
-        elif echo "$REQUEST" | grep -qi "トップ\|index\|ホーム"; then
-          FILE="index.md"
-          echo "---" > "$FILE"
-          echo "layout: home" >> "$FILE"
-          echo "---" >> "$FILE"
-          echo "" >> "$FILE"
-          echo "$CONTENT" >> "$FILE"
+        elif echo "$REQUEST" | grep -qi "トップ\|index\|ホーム\|メイン\|更新"; then
+          # index.mdを完全に置き換え
+          echo "---" > index.md
+          echo "layout: home" >> index.md
+          echo "---" >> index.md
+          echo "" >> index.md
+          echo "$CONTENT" >> index.md
           
         else
-          FILE="about.md"
-          TITLE="About"
-          PERMALINK="/about/"
-          echo "---" > "$FILE"
-          echo "layout: page" >> "$FILE"
-          echo "title: $TITLE" >> "$FILE"
-          echo "permalink: $PERMALINK" >> "$FILE"
-          echo "---" >> "$FILE"
-          echo "" >> "$FILE"
-          echo "$CONTENT" >> "$FILE"
+          # その他の内容もindex.mdに追加
+          echo "" >> index.md
+          echo "## 追加情報" >> index.md
+          echo "" >> index.md
+          echo "$CONTENT" >> index.md
         fi
         
-        echo "Updated: $FILE"
+        echo "Updated: index.md"
         
     - name: Commit changes
       run: |
