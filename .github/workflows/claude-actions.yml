@@ -43,26 +43,34 @@ jobs:
     - name: Call Claude API
       id: claude
       run: |
+        REQUEST="${{ steps.extract.outputs.request }}"
         RESPONSE=$(curl -X POST https://api.anthropic.com/v1/messages \
           -H "Content-Type: application/json" \
           -H "x-api-key: ${{ secrets.ANTHROPIC_API_KEY }}" \
           -H "anthropic-version: 2023-06-01" \
-          -d '{
-            "model": "claude-3-sonnet-20240229",
-            "max_tokens": 1000,
-            "messages": [
+          -d "{
+            \"model\": \"claude-3-sonnet-20240229\",
+            \"max_tokens\": 1000,
+            \"messages\": [
               {
-                "role": "user", 
-                "content": "ヘーホー学舎のウェブサイト用のコンテンツを作成してください。リクエスト: ${{ steps.extract.outputs.request }}"
+                \"role\": \"user\", 
+                \"content\": \"ヘーホー学舎のウェブサイト用のコンテンツを作成してください。リクエスト: $REQUEST\"
               }
             ]
-          }')
+          }")
+        
+        echo "API Response: $RESPONSE"
         
         # レスポンスからcontentを抽出
-        CONTENT=$(echo "$RESPONSE" | jq -r '.content[0].text')
-        echo "content<<EOF" >> $GITHUB_OUTPUT
-        echo "$CONTENT" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        CONTENT=$(echo "$RESPONSE" | jq -r '.content[0].text // "コンテンツの生成に失敗しました"')
+        echo "Extracted content: $CONTENT"
+        
+        # EOFを使って複数行出力
+        {
+          echo "content<<EOF"
+          echo "$CONTENT"
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
         
     - name: Create or update content
       run: |
@@ -91,8 +99,8 @@ jobs:
           
         # その他の場合は新しい投稿として作成
         else
-          # _postsディレクトリを作成
-          mkdir -p _posts
+          # _postsディレクトリを作成（存在しない場合のみ）
+          [ ! -d "_posts" ] && mkdir _posts
           DATE=$(date +%Y-%m-%d)
           FILENAME="_posts/$DATE-claude-response.md"
           echo "---" > "$FILENAME"
