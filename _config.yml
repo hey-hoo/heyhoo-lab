@@ -1,0 +1,10 @@
+title: ヘーホー学舎
+email: contact@heyhoo-gakusha.com
+description: >-
+  創造的な学びの場を提供します
+baseurl: "/heyhoo-gakusha"
+url: "https://your-username.github.io"
+theme: minima
+
+markdown: kramdown
+highlighter: rouge
