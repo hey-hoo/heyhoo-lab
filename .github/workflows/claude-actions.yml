@@ -132,9 +132,19 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
+          const request = '${{ steps.extract.outputs.request }}';
+          const content = `${{ steps.claude.outputs.content }}`.replace(/`/g, '\\`');
+          
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '🤖 Claudeがコンテンツを更新しました！\n\n**リクエスト**: ${{ steps.extract.outputs.request }}\n\n**内容**: \n${{ steps.claude.outputs.content }}\n\n変更がサイトに反映されるまで数分お待ちください。'
+            body: `🤖 Claudeがコンテンツを更新しました！
+
+**リクエスト**: ${request}
+
+**生成されたコンテンツ**: 
+${content}
+
+変更がサイトに反映されるまで数分お待ちください。`
           })
