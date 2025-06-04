@@ -77,36 +77,46 @@ jobs:
           FILE="faq.md"
           TITLE="FAQ"
           PERMALINK="/faq/"
+          echo "---" > "$FILE"
+          echo "layout: page" >> "$FILE"
+          echo "title: $TITLE" >> "$FILE"
+          echo "permalink: $PERMALINK" >> "$FILE"
+          echo "---" >> "$FILE"
+          echo "" >> "$FILE"
+          echo "$CONTENT" >> "$FILE"
+          
         elif echo "$REQUEST" | grep -qi "講座"; then
           FILE="courses.md"
           TITLE="講座"
           PERMALINK="/courses/"
+          echo "---" > "$FILE"
+          echo "layout: page" >> "$FILE"
+          echo "title: $TITLE" >> "$FILE"
+          echo "permalink: $PERMALINK" >> "$FILE"
+          echo "---" >> "$FILE"
+          echo "" >> "$FILE"
+          echo "$CONTENT" >> "$FILE"
+          
         elif echo "$REQUEST" | grep -qi "トップ\|index\|ホーム"; then
           FILE="index.md"
-          cat > "$FILE" << EOF
----
-layout: home
----
-
-$CONTENT
-EOF
-          echo "Updated: $FILE"
-          exit 0
+          echo "---" > "$FILE"
+          echo "layout: home" >> "$FILE"
+          echo "---" >> "$FILE"
+          echo "" >> "$FILE"
+          echo "$CONTENT" >> "$FILE"
+          
         else
           FILE="about.md"
           TITLE="About"
           PERMALINK="/about/"
+          echo "---" > "$FILE"
+          echo "layout: page" >> "$FILE"
+          echo "title: $TITLE" >> "$FILE"
+          echo "permalink: $PERMALINK" >> "$FILE"
+          echo "---" >> "$FILE"
+          echo "" >> "$FILE"
+          echo "$CONTENT" >> "$FILE"
         fi
-        
-        cat > "$FILE" << EOF
----
-layout: page
-title: $TITLE
-permalink: $PERMALINK
----
-
-$CONTENT
-EOF
         
         echo "Updated: $FILE"
         
