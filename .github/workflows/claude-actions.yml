@@ -99,10 +99,8 @@ jobs:
           
         # その他の場合は新しい投稿として作成
         else
-          # _postsディレクトリを作成（存在しない場合のみ）
-          [ ! -d "_posts" ] && mkdir _posts
           DATE=$(date +%Y-%m-%d)
-          FILENAME="_posts/$DATE-claude-response.md"
+          FILENAME="blog-$DATE.md"
           echo "---" > "$FILENAME"
           echo "layout: post" >> "$FILENAME"
           echo "title: Claude Response" >> "$FILENAME"
@@ -110,6 +108,7 @@ jobs:
           echo "---" >> "$FILENAME"
           echo "" >> "$FILENAME"
           echo "$CONTENT" >> "$FILENAME"
+          echo "Created file: $FILENAME"
         fi
         
     - name: Commit and push changes
