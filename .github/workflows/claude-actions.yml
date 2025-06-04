@@ -81,6 +81,17 @@ jobs:
           FILE="courses.md"
           TITLE="講座"
           PERMALINK="/courses/"
+        elif echo "$REQUEST" | grep -qi "トップ\|index\|ホーム"; then
+          FILE="index.md"
+          cat > "$FILE" << EOF
+---
+layout: home
+---
+
+$CONTENT
+EOF
+          echo "Updated: $FILE"
+          exit 0
         else
           FILE="about.md"
           TITLE="About"
