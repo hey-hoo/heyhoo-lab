@@ -75,25 +75,34 @@ jobs:
         
         if echo "$REQUEST" | grep -qi "トップ\|index\|ホーム\|メイン\|更新"; then
           # index.mdを完全に置き換え
-          printf "---\nlayout: home\n---\n\n" > index.md
+          echo "---" > index.md
+          echo "layout: home" >> index.md
+          echo "---" >> index.md
+          echo "" >> index.md
           cat "$CONTENT_FILE" >> index.md
           echo "Replaced index.md completely"
           
         elif echo "$REQUEST" | grep -qi "faq"; then
           # FAQセクションをindex.mdに追加
-          printf "\n## FAQ\n\n" >> index.md
+          echo "" >> index.md
+          echo "## FAQ" >> index.md
+          echo "" >> index.md
           cat "$CONTENT_FILE" >> index.md
           echo "Added FAQ section to index.md"
           
         elif echo "$REQUEST" | grep -qi "講座\|course"; then
           # 講座セクションをindex.mdに追加
-          printf "\n## 講座情報\n\n" >> index.md
+          echo "" >> index.md
+          echo "## 講座情報" >> index.md
+          echo "" >> index.md
           cat "$CONTENT_FILE" >> index.md
           echo "Added course section to index.md"
           
         else
           # その他の内容もindex.mdに追加
-          printf "\n## 追加情報\n\n" >> index.md
+          echo "" >> index.md
+          echo "## 追加情報" >> index.md
+          echo "" >> index.md
           cat "$CONTENT_FILE" >> index.md
           echo "Added additional content to index.md"
         fi
