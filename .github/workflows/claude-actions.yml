@@ -8,7 +8,7 @@ on:
 
 jobs:
   claude-response:
-    if: contains(github.event.issue.body, '@claude') || contains(github.event.comment.body, '@claude')
+    if: contains(github.event.issue.title, '@claude') || contains(github.event.issue.body, '@claude') || contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
     
     steps:
@@ -28,13 +28,15 @@ jobs:
       id: extract
       run: |
         if [ "${{ github.event_name }}" = "issues" ]; then
+          TITLE="${{ github.event.issue.title }}"
           BODY="${{ github.event.issue.body }}"
+          CONTENT="$TITLE $BODY"
         else
-          BODY="${{ github.event.comment.body }}"
+          CONTENT="${{ github.event.comment.body }}"
         fi
         
         # @claudeの後のテキストを抽出
-        REQUEST=$(echo "$BODY" | grep -o '@claude.*' | sed 's/@claude//' | xargs)
+        REQUEST=$(echo "$CONTENT" | grep -o '@claude.*' | sed 's/@claude//' | xargs)
         echo "request=$REQUEST" >> $GITHUB_OUTPUT
         echo "Request: $REQUEST"
         
