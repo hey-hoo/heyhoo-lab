@@ -62,17 +62,15 @@ jobs:
           }")
         
         CONTENT=$(echo "$RESPONSE" | jq -r '.content[0].text // "エラー: コンテンツを生成できませんでした"')
-        echo "Generated content: $CONTENT"
+        echo "Generated content length: ${#CONTENT}"
         
-        {
-          echo "content<<ENDOFCONTENT"
-          echo "$CONTENT"
-          echo "ENDOFCONTENT"
-        } >> $GITHUB_OUTPUT
+        # ファイルに一時保存して文字化け回避
+        echo "$CONTENT" > /tmp/claude_content.txt
+        echo "content_file=/tmp/claude_content.txt" >> $GITHUB_OUTPUT
         
     - name: Update content
       run: |
-        CONTENT="${{ steps.claude.outputs.content }}"
+        CONTENT_FILE="${{ steps.claude.outputs.content_file }}"
         REQUEST="${{ steps.request.outputs.text }}"
         
         if echo "$REQUEST" | grep -qi "faq"; then
@@ -80,14 +78,14 @@ jobs:
           echo "" >> index.md
           echo "## FAQ" >> index.md
           echo "" >> index.md
-          echo "$CONTENT" >> index.md
+          cat "$CONTENT_FILE" >> index.md
           
         elif echo "$REQUEST" | grep -qi "講座\|course"; then
           # 講座セクションをindex.mdに追加
           echo "" >> index.md
           echo "## 講座情報" >> index.md
           echo "" >> index.md
-          echo "$CONTENT" >> index.md
+          cat "$CONTENT_FILE" >> index.md
           
         elif echo "$REQUEST" | grep -qi "トップ\|index\|ホーム\|メイン\|更新"; then
           # index.mdを完全に置き換え
@@ -95,14 +93,14 @@ jobs:
           echo "layout: home" >> index.md
           echo "---" >> index.md
           echo "" >> index.md
-          echo "$CONTENT" >> index.md
+          cat "$CONTENT_FILE" >> index.md
           
         else
           # その他の内容もindex.mdに追加
           echo "" >> index.md
           echo "## 追加情報" >> index.md
           echo "" >> index.md
-          echo "$CONTENT" >> index.md
+          cat "$CONTENT_FILE" >> index.md
         fi
         
         echo "Updated: index.md"
