@@ -1,3 +1,8 @@
+---
+layout: default
+title: My Page
+---
+
 ## 平放学舎 ホワイトペーパー ver0.1
 
 発行日： 2025年6月19日
